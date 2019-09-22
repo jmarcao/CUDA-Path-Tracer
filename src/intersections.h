@@ -152,10 +152,17 @@ __host__ __device__ float sphereIntersectionTest(Geom sphere, Ray r,
  * @param outside            Output param for whether the ray came from outside.
  * @return                   Ray parameter `t` value. -1 if no intersection.
  */
-__host__ __device__ float triangleIntersectionTest(Geom sphere, Ray r,
+__host__ __device__ float triangleIntersectionTest(Geom triangle, Ray r,
 	glm::vec3 &intersectionPoint, glm::vec3 &normal, bool &outside)
 {
+	// Thank the maker, we have glm functions for this.
+	glm::vec3 intersectPos(0.0f);
 
+	if (glm::intersectRayTriangle(r.origin, r.direction, triangle.v1, triangle.v2, triangle.v3, intersectPos)) {
+		intersectionPoint = intersectPos;
+		normal = triangle.normal; // TODO: Since each triangle is flat, we don't worry about what "side" the triangle is on for now. This is wrong.
+		outside = true; // TODO
+	}
 
 	return -1.0f;
 }

@@ -18,6 +18,12 @@ void Scene::loadMeshes() {
 		}
 	}
 
+	// Now, remove meshes from geoms. We will put back the verticies
+	geoms.erase(std::remove_if(
+		geoms.begin(),
+		geoms.end(),
+		[](const Geom& g) { return (g.type == MESH); }));
+
 	// For each mesh, load the objects as triangles
 	// And assign each triangle as a Geom with the correct material.
 	for (int i = 0; i < meshes.size(); i++) {
@@ -44,10 +50,47 @@ void Scene::loadMeshes() {
 			auto indicies = m.indices;
 			
 			// From the indicies, generate a triangle and store that in the geoms vector
-			Geom g = Geom();
-			g.type = TRIANGLE;
+			for (int i = 0; i < indicies.size(); i++) {
+				Geom ng = Geom();
+				ng.type = TRIANGLE;
 
-			// TODO: Parse the darn thing.
+				// All indicies for a mesh are in one block, with
+				// triangles being chunks of three.
+				// What a structure....
+				tinyobj::index_t index0 = indicies[i + 0];
+				tinyobj::index_t index1 = indicies[i + 1];
+				tinyobj::index_t index2 = indicies[i + 2];
+
+				// Now we have the indicies, grab the actual vectors
+				// for each point of the triangle.
+				ng.v1 = glm::vec3(
+					attrib.vertices[index0.vertex_index + 0],
+					attrib.vertices[index0.vertex_index + 1],
+					attrib.vertices[index0.vertex_index + 2]);
+				ng.v2 = glm::vec3(
+					attrib.vertices[index1.vertex_index + 0],
+					attrib.vertices[index1.vertex_index + 1],
+					attrib.vertices[index1.vertex_index + 2]);
+				ng.v3 = glm::vec3(
+					attrib.vertices[index2.vertex_index + 0],
+					attrib.vertices[index2.vertex_index + 1],
+					attrib.vertices[index2.vertex_index + 2]);
+				
+				// Calculate the normal from these three points.
+				// .obj may or may not provide normals, but we will just form them here.
+				ng.normal = glm::normalize(glm::cross(ng.v2 - ng.v1, ng.v3 - ng.v1));
+
+				// Inherit properties from parent mesh.
+				ng.translation = g.translation;
+				ng.scale = g.scale;
+				ng.rotation = g.rotation;
+				ng.transform = g.transform;
+				ng.inverseTransform = g.inverseTransform;
+				ng.invTranspose = g.invTranspose;
+
+				// Now done, add this to the vector.
+				geoms.push_back(ng);
+			}
 		}
 	}
 }
